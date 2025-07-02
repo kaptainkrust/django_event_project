@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Category, Event
+from .models import Category, Event, Tag
 
 
 @admin.register(Category)
@@ -18,3 +18,8 @@ class EventAdmin(admin.ModelAdmin):
     list_display = ["id", "name", "sub_title", "category"]
     list_display_links = ["id", "name"]  # klickbar
     search_fields = ["name", "sub_title"]  # Suchbox sucht in Name und Subtitle
+
+
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    pass

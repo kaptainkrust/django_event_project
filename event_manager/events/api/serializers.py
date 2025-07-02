@@ -1,7 +1,42 @@
+from django.db import transaction
+
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from events.models import Category, Event
+
+
+class BulkEventSerializer(serializers.ListSerializer):
+
+    def create(self, validated_data):
+        # print("create Bulk")
+        events = [Event(**item) for item in validated_data]
+        with transaction.atomic():
+            Event.objects.bulk_create(events)
+            return events
+
+
+
+class EventSerializer(serializers.ModelSerializer):
+
+    author = serializers.StringRelatedField(read_only=True)
+
+    class Meta:
+        model = Event
+        fields = (
+            "author",
+            "name",
+            "sub_title",
+            "category",
+            "date",
+            "min_group",
+            "description"
+        )
+        list_serializer_class = BulkEventSerializer
+
+    def create(self, validated_data):
+        print("Validated data eines Events:", validated_data)
+        return super().create(validated_data)
 
 
 class HelloSerializer(serializers.Serializer):

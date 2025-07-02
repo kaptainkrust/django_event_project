@@ -1,10 +1,102 @@
-from rest_framework import generics, status
+import logging
+from django.db import transaction
+from django.views.decorators.cache import cache_page
+from django.utils.decorators import method_decorator
+
+from rest_framework import generics, status, filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.exceptions import NotAuthenticated
+from rest_framework.authentication import TokenAuthentication, SessionAuthentication
+from rest_framework.permissions import IsAuthenticated
 
 from events.models import Category, Event
 
-from .serializers import CategoryOutgoingSerializer, CategorySerializer, HelloSerializer
+from .serializers import (CategoryOutgoingSerializer, 
+                          CategorySerializer, 
+                          HelloSerializer, 
+                          EventSerializer,
+                          )
+
+
+
+logger = logging.getLogger(__name__)
+
+
+class EventRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = EventSerializer
+    queryset = Event.objects.all()
+    authentication_classes = (TokenAuthentication, SessionAuthentication)
+    permission_classes = (IsAuthenticated,)
+
+
+class EventListCreateAPIView(generics.ListCreateAPIView):
+    serializer_class = EventSerializer
+    queryset = Event.objects.prefetch_related("author")
+
+    authentication_classes = (TokenAuthentication, SessionAuthentication)
+    permission_classes = (IsAuthenticated,)
+
+    # Um die Suche zu implementieren, filter.SearchFilter aus DRF 
+    # angeben
+    filter_backends = [
+        filters.SearchFilter,
+        filters.OrderingFilter,  # zum Sortieren bei der Ausgabe
+    ]
+
+    # http://127.0.0.1:8000/api/events/event?search=xy
+    # name => full text
+    # =name => extact search
+    # $name => REGEX Suche (POSTGRES)
+    # ^name => starts-with suche
+    search_fields = ["name", "=sub_title", "^category__name"]
+
+    # http://127.0.0.1:8000/api/events/event?search=xy
+    ordering_fields = ["date", "name"]
+
+    @method_decorator(cache_page(60))  # 60 SEKUNDEN CACHE
+    def list(self, request, *args, **kwargs):
+        """Auflisten aller Events."""
+        return super().list(request, *args, **kwargs)
+
+    def get_serializer(self, *args, **kwargs):
+        """
+        FAlls eine Liste übergeben wird, muss der Serializer mit 
+        many=True aufgerufen werden.
+        """
+        data = kwargs.get("data")
+        if isinstance(data, list):
+            kwargs["many"] = True
+        return super().get_serializer(*args, **kwargs)
+
+    def perform_create(self, serializer):
+        """
+        Wird aufgerufen, wenn ein Objekt erstellt wird. Wird nur ausgeführt, wenn 
+        die Daten bei Eingabe valide sind.
+        """
+        logger.info("Info messsage")
+        logger.debug("Debug Message")
+        logger.warning("Warning")
+
+        if not self.request.user.is_authenticated:
+            raise NotAuthenticated("User muss authentifiziert sein.")
+        
+        user = self.request.user
+
+        # eingehdnen Daten anreichern mit Zusatzinformation
+        if isinstance(serializer.validated_data, list):
+            for item in serializer.validated_data:
+                item["author"] = user 
+        else:
+            serializer.validated_data["author"] = user 
+        
+        serializer.save()
+
+        # self.validated_data beinhaltet die schon validiert daten
+        # durch serializer.is_valid(raise_exception=True)
+       
+         # keine Validierung!!!!
+
 
 
 class HelloView(APIView):

@@ -4,3 +4,7 @@ pre-commit
 ruff
 factory-boy
 django-debug-toolbar
+pytest 
+pytest-django
+pytest-factoryboy 
+pytest-cov

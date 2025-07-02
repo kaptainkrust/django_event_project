@@ -1,5 +1,11 @@
-from django.contrib.auth import get_user_model
+from functools import partial
+
 from django.db import models
+from django.contrib.auth import get_user_model
+from django.core.validators import MinLengthValidator
+
+from .validators import dummy_validate, datetime_in_future, evil_word_validator
+
 
 User = get_user_model()  # holt aktuelles UserModel
 
@@ -14,6 +20,14 @@ class DateMixin(models.Model):
 
     class Meta:
         abstract = True
+        
+
+class Tag(models.Model):
+    name = models.CharField(max_length=100)
+    # slug = models.SlugField(max_length=100)  # mein Haus => mein-haus
+
+    def __str__(self) -> str:
+        return self.name
 
 
 class Category(DateMixin):
@@ -45,12 +59,19 @@ class Event(DateMixin):
         BIG = (10, "große Gruppe")
         UNLIMITED = (0, "unendlich")
 
-    name = models.CharField(max_length=100, unique=True)  # mandatory
+    name = models.CharField(max_length=100, unique=True, validators=[
+        MinLengthValidator(6), 
+        dummy_validate
+        ]
+    )  
     sub_title = models.CharField(max_length=100, blank=True, null=True)
     description = models.TextField(
-        blank=True, null=True, help_text="Beschreibung der Kategorie"
+        blank=True, null=True, help_text="Beschreibung der Kategorie", 
+        validators=[
+           partial(evil_word_validator, ["doof", "blödi"])
+        ]
     )
-    date = models.DateTimeField()  # Zeitpunkt des Events
+    date = models.DateTimeField(validators=[datetime_in_future])  # Zeitpunkt des Events
     min_group = models.PositiveSmallIntegerField(
         choices=Group.choices, default=Group.UNLIMITED
     )
@@ -58,6 +79,8 @@ class Event(DateMixin):
     category = models.ForeignKey(
         Category, on_delete=models.CASCADE, related_name="events"
     )  #  sport.events.all()
+
+    tags = models.ManyToManyField(Tag, related_name="events", blank=True)
 
     def __str__(self) -> str:
         return self.name

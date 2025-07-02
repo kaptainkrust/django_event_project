@@ -6,13 +6,43 @@
 #
 asgiref==3.8.1
     # via django
+attrs==25.3.0
+    # via
+    #   jsonschema
+    #   referencing
 django==5.2.3
     # via
     #   -r requirements.in
     #   djangorestframework
+    #   drf-spectacular
+    #   drf-spectacular-sidecar
 djangorestframework==3.16.0
+    # via
+    #   -r requirements.in
+    #   drf-spectacular
+drf-spectacular==0.28.0
     # via -r requirements.in
+drf-spectacular-sidecar==2025.7.1
+    # via -r requirements.in
+inflection==0.5.1
+    # via drf-spectacular
+jsonschema==4.24.0
+    # via drf-spectacular
+jsonschema-specifications==2025.4.1
+    # via jsonschema
+pyyaml==6.0.2
+    # via drf-spectacular
+referencing==0.36.2
+    # via
+    #   jsonschema
+    #   jsonschema-specifications
+rpds-py==0.26.0
+    # via
+    #   jsonschema
+    #   referencing
 sqlparse==0.5.3
     # via django
 tzdata==2025.2
     # via django
+uritemplate==4.2.0
+    # via drf-spectacular
